@@ -41,8 +41,16 @@
     - name: Add vagrant user to docker group
       user:
         name: vagrant
-        group: docker
-
+        group: docker 
+    - name: Adding apt repository for Kubernetes
+      apt_repository:
+        repo: deb https://apt.kubernetes.io/kubernetes-xenial main
+        state: present
+        filename: kubernetes.list
+    - name: Add an apt signing key for Kubernetes
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present  
     - name: Remove swapfile from /etc/fstab
       mount:
           name: "{{ item }}"
@@ -51,21 +59,9 @@
       with_items:
             - swap
             - none
-
     - name: Disable swap
       command: swapoff -a
       when: ansible_swaptotal_mb > 0
-    
-    - name: Add an apt signing key for Kubernetes
-      apt_key:
-      url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
-      state: present
-    
-    - name: Adding apt repository for Kubernetes
-      apt_repository:
-        repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
-        state: present
-        filename: kubernetes.list
     - name: Install Kubernetes binaries
       apt: 
         name: "{{ packages }}"
@@ -79,8 +75,7 @@
     - name: Configure node ip
       lineinfile:
         path: /etc/default/kubelet
-        line: KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}
-      
+        line: KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}    
     - name: Restart kubelet
       service:
         name: kubelet
@@ -94,14 +89,11 @@
       - mkdir -p /home/vagrant/.kube
       - cp -i /etc/kubernetes/admin.conf /home/vagrant/.kube/config
       - chown vagrant:vagrant /home/vagrant/.kube/config
-
     - name: Generate join command
       command: kubeadm token create --print-join-command
       register: join_command
-
     - name: Copy join command to local file
-      local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
-
-handlers:
+      local_action: copy content="{{ join_command.stdout_lines[0]}}" dest="./join-command"
+  handlers:
     - name: docker status
-        service: name=docker state=started
+      service: name=docker state=started
