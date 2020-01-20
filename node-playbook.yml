@@ -84,7 +84,7 @@
       become: false
       copy: 
         dest: /tmp/join-command.sh
-        mode: 511
+        mode: 777
         src: join
       name: "Copy the join command to server location"
     - 
